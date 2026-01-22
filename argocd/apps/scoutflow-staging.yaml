@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scoutflow-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  sources:
+    # Source 1: Helm chart from app repository
+    - repoURL: https://github.com/omerbh7/scoutflow-app
+      targetRevision: main
+      path: helm/scoutflow
+      helm:
+        valueFiles:
+          - $values/environments/staging/values.yaml
+    
+    # Source 2: Values from GitOps repository
+    - repoURL: https://github.com/omerbh7/scoutflow-gitops
+      targetRevision: main
+      ref: values
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    
+    syncOptions:
+      - CreateNamespace=true
+      - Validate=true
+      - ServerSideApply=false
+    
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
