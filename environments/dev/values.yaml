@@ -1,0 +1,112 @@
+# ============================================================================
+# Development Environment Configuration
+# Uses 'latest' tags, minimal resources, single replicas
+# Cost-optimized for development and feature testing
+# ============================================================================
+
+global:
+  registry: 279987127424.dkr.ecr.us-east-1.amazonaws.com
+  imageTag: latest
+
+imagePullSecrets:
+  - name: ecr-registry-secret
+
+# ECR authentication
+ecr:
+  enabled: true
+  username: AWS
+  password: ""  # Set via CD pipeline
+
+# Database configuration
+database:
+  image:
+    repository: scoutflow-app-db
+    pullPolicy: Always
+    tag: ""
+  
+  replicas: 1
+  
+  service:
+    type: ClusterIP
+    port: 5432
+  
+  persistence:
+    storageClass: "standard"
+    size: 10Gi
+  
+  env:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: <REPLACE_WITH_TERRAFORM_OUTPUT>
+    POSTGRES_DB: nba_stats
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+# Ingest job configuration
+ingest:
+  image:
+    repository: scoutflow-app-ingest
+    pullPolicy: Always
+    tag: ""
+  
+  restartPolicy: Never
+  backoffLimit: 3
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Backend configuration
+backend:
+  image:
+    repository: scoutflow-app-backend
+    pullPolicy: Always
+    tag: ""
+  
+  replicas: 1
+  
+  service:
+    type: ClusterIP
+    port: 8000
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# Frontend configuration
+frontend:
+  image:
+    repository: scoutflow-app-frontend
+    pullPolicy: Always
+    tag: ""
+  
+  replicas: 1
+  
+  service:
+    type: ClusterIP
+    port: 80
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Ingress configuration
+ingress:
+  host: dev.scoutflow.example.com
