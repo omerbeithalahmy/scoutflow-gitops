@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: scoutflow-staging
+  name: scoutflow-prod
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -15,7 +15,7 @@ spec:
       path: helm/scoutflow
       helm:
         valueFiles:
-          - $values/environments/staging/values.yaml
+          - $values/environments/prod/values.yaml
     
     # Source 2: Values from GitOps repository
     - repoURL: https://github.com/omerbh7/scoutflow-gitops
@@ -24,14 +24,11 @@ spec:
   
   destination:
     server: https://kubernetes.default.svc
-    namespace: staging
+    namespace: prod
   
+  # NO automated sync - manual approval required!
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-      allowEmpty: false
-    
+    # automated: NOT SET - this is manual sync
     syncOptions:
       - CreateNamespace=true
       - Validate=true

@@ -1,0 +1,112 @@
+# ============================================================================
+# Production Environment Configuration
+# Uses version tags (v1.0.0), high resources, multiple replicas
+# Production workloads with manual deployment approval
+# ============================================================================
+
+global:
+  registry: 279987127424.dkr.ecr.us-east-1.amazonaws.com
+  imageTag: v1.0.0  # Specific version - NOT latest!
+
+imagePullSecrets:
+  - name: ecr-registry-secret
+
+# ECR authentication
+ecr:
+  enabled: true
+  username: AWS
+  password: ""  # Set via CD pipeline
+
+# Database configuration
+database:
+  image:
+    repository: scoutflow-app-db
+    pullPolicy: IfNotPresent  # Use cached images in production
+    tag: ""
+  
+  replicas: 1
+  
+  service:
+    type: ClusterIP
+    port: 5432
+  
+  persistence:
+    storageClass: "standard"
+    size: 20Gi  # Larger storage for production
+  
+  env:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: <REPLACE_WITH_TERRAFORM_OUTPUT>
+    POSTGRES_DB: nba_stats
+  
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Ingest job configuration
+ingest:
+  image:
+    repository: scoutflow-app-ingest
+    pullPolicy: IfNotPresent
+    tag: ""
+  
+  restartPolicy: Never
+  backoffLimit: 3
+  
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Backend configuration
+backend:
+  image:
+    repository: scoutflow-app-backend
+    pullPolicy: IfNotPresent
+    tag: ""
+  
+  replicas: 3  # High availability
+  
+  service:
+    type: ClusterIP
+    port: 8000
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# Frontend configuration
+frontend:
+  image:
+    repository: scoutflow-app-frontend
+    pullPolicy: IfNotPresent
+    tag: ""
+  
+  replicas: 3  # High availability
+  
+  service:
+    type: ClusterIP
+    port: 80
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# Ingress configuration
+ingress:
+  host: scoutflow.example.com
