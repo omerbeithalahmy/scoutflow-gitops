@@ -60,55 +60,143 @@ scoutflow-gitops/
 | **Stage** | 100m-500m | 128Mi-256Mi | 50m-200m | 64Mi-128Mi |
 | **Prod** | 100m-500m | 128Mi-256Mi | 50m-200m | 64Mi-128Mi |
 
+## 🔐 Secret Management with External Secrets Operator
+
+### Architecture
+
+This repository uses **External Secrets Operator (ESO)** to automatically sync database credentials from AWS Secrets Manager to Kubernetes, ensuring **zero passwords are stored in Git**.
+
+```
+AWS Secrets Manager (Terraform-managed)
+           ↓
+External Secrets Operator (reads via IRSA)
+           ↓
+Kubernetes Secret (auto-created in cluster)
+           ↓
+Application Pods
+```
+
+### How It Works
+
+**1. Infrastructure** (`scoutflow-infra` repository):
+   - Creates database passwords in AWS Secrets Manager (auto-generated, 16 characters)
+   - Installs External Secrets Operator in EKS cluster
+   - Creates IAM role with IRSA for ESO to read secrets
+   - Grants least-privilege permissions (read-only, scoped to db secrets)
+
+**2. Application** (`scoutflow-app` repository):
+   - Helm chart contains `SecretStore` and `ExternalSecret` resources
+   - `SecretStore` configures connection to AWS Secrets Manager
+   - `ExternalSecret` defines which secret to sync and how
+
+**3. GitOps** (this repository):
+   - Values files reference AWS secret names (not passwords!)
+   - ESO configuration points to the secret in AWS
+   - ArgoCD deploys the configuration
+   - ESO automatically creates Kubernetes secrets
+
+### Security Benefits
+
+✅ **No secrets in Git** - Passwords never committed to version control  
+✅ **Automated sync** - ESO keeps Kubernetes secrets up-to-date with AWS  
+✅ **IRSA-based auth** - No long-lived AWS credentials needed  
+✅ **Secret rotation** - Update in AWS, ESO auto-syncs  
+✅ **Audit trail** - All access logged in AWS CloudTrail  
+✅ **Public-ready** - This repo can safely be made public
+
+### Configuration Per Environment
+
+Each `values.yaml` contains:
+
+```yaml
+externalSecrets:
+  enabled: true
+  region: us-east-1
+  secretName: "scoutflow-dev-db-xxxxx"  # From terraform output
+```
+
+**To get secret names:**
+```bash
+cd ~/scoutflow-infra/environments/dev
+terraform output db_secret_name
+```
+
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - EKS cluster running (from `scoutflow-infra`)
+- External Secrets Operator installed (from `scoutflow-infra`)
 - ArgoCD installed on cluster
 - `kubectl` configured for cluster access
 - ECR images available
-- Database credentials from Terraform
 
-### 1. Setup Database Credentials
+### 1. Update Secret Names (First-Time Setup)
 
-For each environment, retrieve the database password from Terraform:
+Update the `secretName` in each environment's values.yaml with terraform outputs:
 
 ```bash
-# Dev environment
+# Get secret names from infrastructure
 cd ~/scoutflow-infra/environments/dev
-export DEV_DB_PASSWORD=$(terraform output -raw db_password)
+DEV_SECRET=$(terraform output -raw db_secret_name)
 
-# Stage environment
 cd ~/scoutflow-infra/environments/stage
-export STAGE_DB_PASSWORD=$(terraform output -raw db_password)
+STAGE_SECRET=$(terraform output -raw db_secret_name)
 
-# Prod environment
 cd ~/scoutflow-infra/environments/prod
-export PROD_DB_PASSWORD=$(terraform output -raw db_password)
-```
+PROD_SECRET=$(terraform output -raw db_secret_name)
 
-Update the values files:
-
-```bash
+# Update GitOps values files
 cd ~/scoutflow-gitops
-
-# Update dev
-sed -i '' "s/POSTGRES_PASSWORD: <REPLACE_WITH_TERRAFORM_OUTPUT>/POSTGRES_PASSWORD: $DEV_DB_PASSWORD/" environments/dev/values.yaml
-
-# Update stage
-sed -i '' "s/POSTGRES_PASSWORD: <REPLACE_WITH_TERRAFORM_OUTPUT>/POSTGRES_PASSWORD: $STAGE_DB_PASSWORD/" environments/stage/values.yaml
-
-# Update prod
-sed -i '' "s/POSTGRES_PASSWORD: <REPLACE_WITH_TERRAFORM_OUTPUT>/POSTGRES_PASSWORD: $PROD_DB_PASSWORD/" environments/prod/values.yaml
+sed -i '' "s/REPLACE_WITH_TERRAFORM_OUTPUT_db_secret_name/$DEV_SECRET/" environments/dev/values.yaml
+sed -i '' "s/REPLACE_WITH_TERRAFORM_OUTPUT_db_secret_name/$STAGE_SECRET/" environments/stage/values.yaml
+sed -i '' "s/REPLACE_WITH_TERRAFORM_OUTPUT_db_secret_name/$PROD_SECRET/" environments/prod/values.yaml
 
 # Commit changes
 git add environments/*/values.yaml
-git commit -m "Configure database credentials"
+git commit -m "Configure External Secrets integration"
 git push origin main
 ```
 
 ### 2. Deploy Environments
+
+```bash
+# Deploy dev (auto-syncs)
+kubectl apply -f argocd/apps/scoutflow-dev.yaml
+
+# Deploy stage (auto-syncs)
+kubectl apply -f argocd/apps/scoutflow-stage.yaml
+
+# Deploy prod (requires manual sync in ArgoCD UI)
+kubectl apply -f argocd/apps/scoutflow-prod.yaml
+
+# Watch sync progress
+kubectl get applications -n argocd
+
+# Check pods in each environment
+kubectl get pods -n dev
+kubectl get pods -n stage
+kubectl get pods -n prod
+```
+
+### 3. Verify External Secrets Integration
+
+```bash
+# Check ESO is running
+kubectl get pods -n external-secrets-system
+
+# Verify ExternalSecret resources created
+kubectl get externalsecret -n dev
+kubectl get externalsecret -n stage
+kubectl get externalsecret -n prod
+
+# Verify Kubernetes secrets were auto-created by ESO
+kubectl get secret -n dev | grep db-secret
+kubectl describe externalsecret -n dev  # Check sync status
+```
+
+### 4. Sync Production (Manual)
+
 
 ```bash
 # Deploy dev (auto-syncs)
@@ -227,6 +315,26 @@ git push origin main
 ```
 
 ## 🔍 Troubleshooting
+
+### External Secrets Issues
+
+**ExternalSecret not syncing:**
+```bash
+# Check ESO operator logs
+kubectl logs -n external-secrets-system -l app.kubernetes.io/name=external-secrets
+
+# Check ExternalSecret status
+kubectl describe externalsecret <name> -n <namespace>
+
+# Verify SecretStore is configured
+kubectl get secretstore -n <namespace>
+kubectl describe secretstore -n <namespace>
+```
+
+**Common ESO issues:**
+- ❌ **"secret not found"** → Verify `secretName` in values.yaml matches terraform output
+- ❌ **"access denied"** → Check IRSA role has correct permissions (verify in infra repo)
+- ❌ **"secretstore not ready"** → Verify ESO pods are running in `external-secrets-system`
 
 ### Application Not Syncing
 

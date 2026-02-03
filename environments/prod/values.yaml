@@ -17,6 +17,15 @@ ecr:
   username: AWS
   password: ""  # Set via CD pipeline
 
+# External Secrets Operator configuration
+# NOTE: Infra repo must use static names (not name_prefix) for full automation
+# See: scoutflow-infra/modules/database-secrets/main.tf
+externalSecrets:
+  enabled: true
+  region: us-east-1
+  # Static secret name - matches what terraform creates
+  secretName: "scoutflow/prod/database"
+
 # Database configuration
 database:
   image:
@@ -34,18 +43,11 @@ database:
     storageClass: "standard"
     size: 20Gi  # Larger storage for production
   
+  # Only non-sensitive values - password managed by External Secrets Operator
   env:
     POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: <REPLACE_WITH_TERRAFORM_OUTPUT>
     POSTGRES_DB: nba_stats
-  
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: 1000m
-      memory: 1Gi
+
 
 # Ingest job configuration
 ingest:
