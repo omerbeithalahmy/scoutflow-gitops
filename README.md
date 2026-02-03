@@ -1,6 +1,57 @@
 # ScoutFlow GitOps Repository
 
-GitOps deployment configurations for the ScoutFlow NBA player tracking application using ArgoCD.
+> **GitOps deployment configuration for the ScoutFlow NBA analytics platform**
+
+Production-grade Kubernetes deployment using ArgoCD, Helm, and External Secrets Operator for secure secret management.
+
+---
+
+## 📋 Overview
+
+This repository manages ScoutFlow's Kubernetes deployments across three environments using **GitOps principles**:
+
+- **Development** - Automated deployment with latest images
+- **Staging** - QA testing with production-like configuration
+- **Production** - Manual approval for controlled releases
+
+**Key Technologies:**
+- ✅ ArgoCD (GitOps continuous delivery)
+- ✅ Helm (Kubernetes package management)
+- ✅ External Secrets Operator (AWS Secrets Manager integration)
+- ✅ Multi-environment configuration
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│  GitHub Repository (scoutflow-gitops)               │
+│  └─ environments/                                   │
+│     ├─ dev/values.yaml                              │
+│     ├─ stage/values.yaml                            │
+│     └─ prod/values.yaml                             │
+└─────────────────────────────────────────────────────┘
+                        │
+                        ↓ (ArgoCD watches)
+┌─────────────────────────────────────────────────────┐
+│  Kubernetes Cluster (AWS EKS)                       │
+│                                                     │
+│  ArgoCD ──→ Deploys ──→ ScoutFlow Application      │
+│                                                     │
+│  External Secrets Operator ──→ AWS Secrets Manager │
+│              ↓                                      │
+│         Database Credentials                        │
+└─────────────────────────────────────────────────────┘
+```
+
+**Secret Management Flow:**
+1. Terraform creates secrets in AWS Secrets Manager
+2. External Secrets Operator syncs to Kubernetes
+3. Application pods consume secrets securely
+4. **No passwords stored in Git** ✅
+
+---
 
 ## 📁 Repository Structure
 
@@ -8,404 +59,375 @@ GitOps deployment configurations for the ScoutFlow NBA player tracking applicati
 scoutflow-gitops/
 ├── argocd/
 │   └── apps/
-│       ├── scoutflow-dev.yaml         # Dev environment (auto-sync)
-│       ├── scoutflow-stage.yaml       # Stage environment (auto-sync)
-│       └── scoutflow-prod.yaml        # Production environment (manual sync)
+│       ├── scoutflow-dev.yaml      # Dev environment ArgoCD application
+│       ├── scoutflow-stage.yaml    # Stage environment ArgoCD application
+│       └── scoutflow-prod.yaml     # Prod environment ArgoCD application
+│
 └── environments/
-    ├── dev/
-    │   └── values.yaml                # Dev config (latest tags, 1 replica)
-    ├── stage/
-    │   └── values.yaml                # Stage config (latest tags, 2 replicas)
-    └── prod/
-        └── values.yaml                # Prod config (v1.0.0, 3 replicas)
+    ├── dev/values.yaml             # Dev configuration (latest images, minimal resources)
+    ├── stage/values.yaml           # Stage configuration (2 replicas, testing)
+    └── prod/values.yaml            # Prod configuration (3 replicas, versioned images)
 ```
 
-## 🏗️ Architecture
-
-### Three-Repository Model
-
-| Repository | Purpose |
-|------------|---------|
-| [scoutflow-app](https://github.com/omerbh7/scoutflow-app) | Application code + Helm charts |
-| [scoutflow-infra](https://github.com/omerbh7/scoutflow-infra) | Terraform infrastructure (EKS, VPC, ArgoCD) |
-| **scoutflow-gitops** (this repo) | Deployment configurations |
-
-### Deployment Flow
-
-```
-1. Code pushed to scoutflow-app
-         ↓
-2. CI builds and pushes Docker image to ECR
-         ↓
-3. ArgoCD detects change (watches this repo)
-         ↓
-4. ArgoCD syncs cluster to match Git state
-         ↓
-5. Application deployed! 🎉
-```
-
-## 🌍 Environments
-
-| Environment | Namespace | Sync Policy | Image Tags | Replicas | Purpose |
-|-------------|-----------|-------------|------------|----------|---------|
-| **Dev** | `dev` | Automated | `latest` | 1 | Development & feature testing |
-| **Stage** | `stage` | Automated | `latest` | 2 | Pre-production QA & testing |
-| **Prod** | `prod` | Manual | `v1.0.0` | 3 | Production workloads |
-
-### Resource Allocation
-
-| Environment | Backend CPU | Backend RAM | Frontend CPU | Frontend RAM |
-|-------------|-------------|-------------|--------------|--------------|
-| **Dev** | 100m-500m | 128Mi-256Mi | 50m-200m | 64Mi-128Mi |
-| **Stage** | 100m-500m | 128Mi-256Mi | 50m-200m | 64Mi-128Mi |
-| **Prod** | 100m-500m | 128Mi-256Mi | 50m-200m | 64Mi-128Mi |
-
-## 🔐 Secret Management with External Secrets Operator
-
-### Architecture
-
-This repository uses **External Secrets Operator (ESO)** to automatically sync database credentials from AWS Secrets Manager to Kubernetes, ensuring **zero passwords are stored in Git**.
-
-```
-AWS Secrets Manager (Terraform-managed)
-           ↓
-External Secrets Operator (reads via IRSA)
-           ↓
-Kubernetes Secret (auto-created in cluster)
-           ↓
-Application Pods
-```
-
-### How It Works
-
-**1. Infrastructure** (`scoutflow-infra` repository):
-   - Creates database passwords in AWS Secrets Manager (auto-generated, 16 characters)
-   - Installs External Secrets Operator in EKS cluster
-   - Creates IAM role with IRSA for ESO to read secrets
-   - Grants least-privilege permissions (read-only, scoped to db secrets)
-
-**2. Application** (`scoutflow-app` repository):
-   - Helm chart contains `SecretStore` and `ExternalSecret` resources
-   - `SecretStore` configures connection to AWS Secrets Manager
-   - `ExternalSecret` defines which secret to sync and how
-
-**3. GitOps** (this repository):
-   - Values files reference AWS secret names (not passwords!)
-   - ESO configuration points to the secret in AWS
-   - ArgoCD deploys the configuration
-   - ESO automatically creates Kubernetes secrets
-
-### Security Benefits
-
-✅ **No secrets in Git** - Passwords never committed to version control  
-✅ **Automated sync** - ESO keeps Kubernetes secrets up-to-date with AWS  
-✅ **IRSA-based auth** - No long-lived AWS credentials needed  
-✅ **Secret rotation** - Update in AWS, ESO auto-syncs  
-✅ **Audit trail** - All access logged in AWS CloudTrail  
-✅ **Public-ready** - This repo can safely be made public
-
-### Configuration Per Environment
-
-Each `values.yaml` contains:
-
-```yaml
-externalSecrets:
-  enabled: true
-  region: us-east-1
-  secretName: "scoutflow-dev-db-xxxxx"  # From terraform output
-```
-
-**To get secret names:**
-```bash
-cd ~/scoutflow-infra/environments/dev
-terraform output db_secret_name
-```
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- EKS cluster running (from `scoutflow-infra`)
-- External Secrets Operator installed (from `scoutflow-infra`)
-- ArgoCD installed on cluster
-- `kubectl` configured for cluster access
-- ECR images available
+1. **Infrastructure deployed** - [`scoutflow-infra`](https://github.com/omerbh7/scoutflow-infra) terraform applied
+2. **ArgoCD installed** - Running in the EKS cluster
+3. **External Secrets Operator** - Installed via infra repo
+4. **Application repository** - [`scoutflow-app`](https://github.com/omerbh7/scoutflow-app) available on GitHub
 
-### 1. Update Secret Names (First-Time Setup)
-
-Update the `secretName` in each environment's values.yaml with terraform outputs:
+### Deploy Applications
 
 ```bash
-# Get secret names from infrastructure
-cd ~/scoutflow-infra/environments/dev
-DEV_SECRET=$(terraform output -raw db_secret_name)
-
-cd ~/scoutflow-infra/environments/stage
-STAGE_SECRET=$(terraform output -raw db_secret_name)
-
-cd ~/scoutflow-infra/environments/prod
-PROD_SECRET=$(terraform output -raw db_secret_name)
-
-# Update GitOps values files
-cd ~/scoutflow-gitops
-sed -i '' "s/REPLACE_WITH_TERRAFORM_OUTPUT_db_secret_name/$DEV_SECRET/" environments/dev/values.yaml
-sed -i '' "s/REPLACE_WITH_TERRAFORM_OUTPUT_db_secret_name/$STAGE_SECRET/" environments/stage/values.yaml
-sed -i '' "s/REPLACE_WITH_TERRAFORM_OUTPUT_db_secret_name/$PROD_SECRET/" environments/prod/values.yaml
-
-# Commit changes
-git add environments/*/values.yaml
-git commit -m "Configure External Secrets integration"
-git push origin main
-```
-
-### 2. Deploy Environments
-
-```bash
-# Deploy dev (auto-syncs)
+# 1. Deploy dev environment
 kubectl apply -f argocd/apps/scoutflow-dev.yaml
 
-# Deploy stage (auto-syncs)
+# 2. Deploy stage environment
 kubectl apply -f argocd/apps/scoutflow-stage.yaml
 
-# Deploy prod (requires manual sync in ArgoCD UI)
+# 3. Deploy prod environment (manual sync required)
 kubectl apply -f argocd/apps/scoutflow-prod.yaml
+```
 
-# Watch sync progress
+### Verify Deployment
+
+```bash
+# Check ArgoCD applications
 kubectl get applications -n argocd
 
-# Check pods in each environment
+# Check application status
 kubectl get pods -n dev
 kubectl get pods -n stage
 kubectl get pods -n prod
-```
 
-### 3. Verify External Secrets Integration
-
-```bash
-# Check ESO is running
-kubectl get pods -n external-secrets-system
-
-# Verify ExternalSecret resources created
+# Verify External Secrets
 kubectl get externalsecret -n dev
-kubectl get externalsecret -n stage
-kubectl get externalsecret -n prod
-
-# Verify Kubernetes secrets were auto-created by ESO
-kubectl get secret -n dev | grep db-secret
-kubectl describe externalsecret -n dev  # Check sync status
+kubectl describe externalsecret -n dev
 ```
 
-### 4. Sync Production (Manual)
+---
 
+## 🔐 Secret Management
 
-```bash
-# Deploy dev (auto-syncs)
-kubectl apply -f argocd/apps/scoutflow-dev.yaml
+### How External Secrets Work
 
-# Deploy stage (auto-syncs)
-kubectl apply -f argocd/apps/scoutflow-stage.yaml
-
-# Deploy prod (requires manual sync in ArgoCD UI)
-kubectl apply -f argocd/apps/scoutflow-prod.yaml
-
-# Watch sync progress
-kubectl get applications -n argocd
-
-# Check pods in each environment
-kubectl get pods -n dev
-kubectl get pods -n stage
-kubectl get pods -n prod
+**Configuration** (in values files):
+```yaml
+externalSecrets:
+  enabled: true
+  region: us-east-1
+  secretName: "scoutflow/dev/database"
 ```
 
-### 3. Sync Production (Manual)
+**What Happens:**
+1. External Secrets Operator reads from AWS Secrets Manager
+2. Creates Kubernetes secret: `<release>-db-secret`
+3. Contains keys: `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+4. Application pods mount the secret
 
-```bash
-# Port forward to ArgoCD UI
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+**Security Benefits:**
+- ✅ Zero passwords in Git
+- ✅ IAM-based authentication (IRSA)
+- ✅ Automatic secret rotation support
+- ✅ Audit trail in AWS CloudTrail
 
-# Get admin password
-kubectl -n argocd get secret argocd-initial-admin-secret \
-  -o jsonpath="{.data.password}" | base64 -d
+---
 
-# Open: https://localhost:8080
-# Login and click SYNC on scoutflow-prod
-```
+## 🌍 Environment Configuration
+
+### Development
+
+**Purpose:** Feature development and testing
+
+- **Images:** `latest` tag (auto-deploys on push)
+- **Replicas:** 1 per service
+- **Resources:** Minimal (cost-optimized)
+- **Sync:** Automated with self-healing
+- **Namespace:** `dev`
+
+### Staging
+
+**Purpose:** QA testing and pre-production validation
+
+- **Images:** `latest` tag
+- **Replicas:** 2 per service (HA testing)
+- **Resources:** Production-like
+- **Sync:** Automated
+- **Namespace:** `stage`
+
+### Production
+
+**Purpose:** Live user traffic
+
+- **Images:** Versioned tags (e.g., `v1.0.0`)
+- **Replicas:** 3 per service (high availability)
+- **Resources:** High limits
+- **Sync:** **Manual approval required**
+- **Namespace:** `prod`
+
+---
 
 ## 🔄 Deployment Workflow
 
-### Development → Stage → Production
+### Automated Deployment (Dev/Stage)
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ 1. Development                                          │
-│    • Push to main branch                                │
-│    • CI builds 'latest' tag                             │
-│    • ArgoCD auto-deploys to dev                         │
-└─────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────┐
-│ 2. Stage Testing                                        │
-│    • Same 'latest' images deployed to stage             │
-│    • QA team tests in production-like environment       │
-│    • ArgoCD auto-syncs stage                            │
-└─────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────┐
-│ 3. Production Release                                   │
-│    • Create version tag: git tag v1.1.0                 │
-│    • CI builds versioned images                         │
-│    • Update prod values.yaml with new version           │
-│    • Manual sync in ArgoCD UI                           │
-└─────────────────────────────────────────────────────────┘
+1. Developer pushes code to [`scoutflow-app`](https://github.com/omerbh7/scoutflow-app)
+   ↓
+2. GitHub Actions builds & pushes Docker images
+   ↓
+3. ArgoCD detects change in GitOps repo
+   ↓
+4. ArgoCD syncs application to cluster
+   ↓
+5. Pods restart with new images
 ```
 
-## 🔐 ECR Authentication
+### Manual Deployment (Production)
 
-ECR credentials expire every 12 hours. Create secret:
-
-```bash
-# Get ECR password
-ECR_PASSWORD=$(aws ecr get-login-password --region us-east-1)
-
-# Create secret in all namespaces
-for ns in dev stage prod; do
-  kubectl create secret docker-registry ecr-registry-secret \
-    --docker-server=279987127424.dkr.ecr.us-east-1.amazonaws.com \
-    --docker-username=AWS \
-    --docker-password="$ECR_PASSWORD" \
-    -n $ns
-done
 ```
+1. Update prod/values.yaml with new version
+   ↓
+2. Commit and push changes
+   ↓
+3. ArgoCD detects out-of-sync state
+   ↓
+4. Manual sync via ArgoCD UI or CLI:
+   argocd app sync scoutflow-prod
+   ↓
+5. Production deployment completes
+```
+
+---
 
 ## 🛠️ Common Operations
 
-### Update Dev/Stage (Automatic)
-
-Both dev and stage auto-deploy when new `latest` images are pushed:
+### Update Application Version
 
 ```bash
-# In scoutflow-app repository
-git push origin main
+# 1. Edit the values file
+vi environments/prod/values.yaml
 
-# CI builds and pushes latest tag
-# ArgoCD auto-syncs dev and stage (no action needed)
-```
+# 2. Change imageTag
+global:
+  imageTag: v1.1.0  # Change this line
 
-### Promote to Production (Manual)
-
-```bash
-# 1. Create release tag in scoutflow-app
-cd ../scoutflow-app
-git tag v1.1.0
-git push origin v1.1.0
-
-# 2. Wait for CI to build versioned images
-
-# 3. Update production values
-cd ../scoutflow-gitops
-vim environments/prod/values.yaml
-# Change imageTag: v1.0.0 → v1.1.0
-
-# 4. Commit and push
+# 3. Commit and push
 git add environments/prod/values.yaml
-git commit -m "Release v1.1.0 to production"
+git commit -m "chore: update prod to v1.1.0"
 git push origin main
 
-# 5. Sync in ArgoCD UI (manual approval)
+# 4. Sync in ArgoCD
+argocd app sync scoutflow-prod
 ```
 
-## 🔍 Troubleshooting
+### Scale Replicas
 
-### External Secrets Issues
-
-**ExternalSecret not syncing:**
 ```bash
-# Check ESO operator logs
-kubectl logs -n external-secrets-system -l app.kubernetes.io/name=external-secrets
+# Edit values file
+vi environments/stage/values.yaml
 
-# Check ExternalSecret status
-kubectl describe externalsecret <name> -n <namespace>
+# Update replicas
+backend:
+  replicas: 3  # Changed from 2
 
-# Verify SecretStore is configured
-kubectl get secretstore -n <namespace>
-kubectl describe secretstore -n <namespace>
+# Push changes
+git add environments/stage/values.yaml
+git commit -m "scale: increase stage backend to 3 replicas"
+git push
 ```
 
-**Common ESO issues:**
-- ❌ **"secret not found"** → Verify `secretName` in values.yaml matches terraform output
-- ❌ **"access denied"** → Check IRSA role has correct permissions (verify in infra repo)
-- ❌ **"secretstore not ready"** → Verify ESO pods are running in `external-secrets-system`
-
-### Application Not Syncing
+### Check Application Health
 
 ```bash
-# Check application status
+# ArgoCD application status
+argocd app get scoutflow-dev
+
+# Detailed sync status
+argocd app sync-status scoutflow-dev
+
+# View application in UI
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Open: https://localhost:8080
+```
+
+### Troubleshoot Sync Issues
+
+```bash
+# Check ArgoCD application
 kubectl describe application scoutflow-dev -n argocd
-kubectl describe application scoutflow-stage -n argocd
-kubectl describe application scoutflow-prod -n argocd
 
-# Check ArgoCD logs
-kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller
+# Check External Secrets
+kubectl get externalsecret -n dev
+kubectl describe externalsecret -n dev
+
+# Check if secret was created
+kubectl get secret -n dev | grep db-secret
+
+# View External Secrets Operator logs
+kubectl logs -n external-secrets-system -l app.kubernetes.io/name=external-secrets
 ```
 
-### Image Pull Errors
+---
 
-```bash
-# Verify ECR secret exists
-kubectl get secret ecr-registry-secret -n dev
-kubectl get secret ecr-registry-secret -n stage
-kubectl get secret ecr-registry-secret -n prod
+## 📊 Resource Allocation
 
-# Recreate if expired (12h TTL)
-# See "ECR Authentication" section above
-```
+| Environment | Backend CPU | Backend Memory | Frontend CPU | Frontend Memory |
+|-------------|-------------|----------------|--------------|-----------------|
+| **Dev**     | 100m-500m   | 128Mi-256Mi    | 50m-200m     | 64Mi-128Mi      |
+| **Stage**   | 200m-1000m  | 256Mi-512Mi    | 100m-500m    | 128Mi-256Mi     |
+| **Prod**    | 500m-2000m  | 512Mi-1Gi      | 200m-1000m   | 256Mi-512Mi     |
 
-### Database Connection Issues
+---
 
-```bash
-# Check database pod status
-kubectl get pods -n dev -l app=database
-kubectl get pods -n stage -l app=database
-kubectl get pods -n prod -l app=database
-
-# Check database credentials
-kubectl get secret -n dev
-# Verify POSTGRES_PASSWORD is set correctly in values.yaml
-```
-
-## 📊 Monitoring
+## 🔍 Monitoring & Access
 
 ### ArgoCD UI
 
 ```bash
-# Port forward to ArgoCD
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-
 # Get admin password
 kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath="{.data.password}" | base64 -d
 
-# Open: https://localhost:8080
+# Port forward
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+# Access: https://localhost:8080
+# Username: admin
+# Password: (from above)
 ```
 
-### Application Health
+### Application Logs
 
 ```bash
-# Check all applications
-kubectl get applications -n argocd
+# Backend logs
+kubectl logs -n dev -l app.kubernetes.io/component=backend
 
-# Watch specific environment
-kubectl get pods -n dev -w
-kubectl get pods -n stage -w
-kubectl get pods -n prod -w
+# Frontend logs
+kubectl logs -n dev -l app.kubernetes.io/component=frontend
+
+# Database logs
+kubectl logs -n dev -l app.kubernetes.io/component=database
 ```
-
-## 🏷️ Tags
-
-- `latest` - Auto-built from `main` branch (dev + stage)
-- `v1.x.x` - Release tags (production)
 
 ---
 
-**Maintained by**: DevOps Team  
-**Project**: ScoutFlow NBA Player Tracking
+## 🔗 Integration with Other Repositories
+
+### [scoutflow-infra](https://github.com/omerbh7/scoutflow-infra)
+
+**Provides:**
+- EKS cluster
+- ArgoCD installation
+- External Secrets Operator
+- AWS Secrets Manager secrets
+- IAM roles and policies
+
+**Required before deploying this repo**
+
+### [scoutflow-app](https://github.com/omerbh7/scoutflow-app)
+
+**Provides:**
+- Helm chart templates
+- Docker images
+- Application code
+
+**Referenced by ArgoCD applications**
+
+---
+
+## 🚨 Important Notes
+
+### Production Deployment
+
+⚠️ **Production requires manual sync** - This is by design for controlled releases
+
+```bash
+# Never push directly to prod without review
+# Always sync manually via ArgoCD UI or CLI
+argocd app sync scoutflow-prod
+```
+
+### Secret Updates
+
+🔒 **Secrets are managed by infrastructure repo**
+
+- Database passwords: AWS Secrets Manager
+- ECR credentials: Set via CI/CD pipeline
+- Never commit passwords to this repository
+
+### Image Tags
+
+📌 **Use specific versions in production**
+
+- ❌ Bad: `imageTag: latest` (in prod)
+- ✅ Good: `imageTag: v1.0.0` (in prod)
+
+---
+
+## 📝 Making Changes
+
+### Adding New Environment Variables
+
+1. Update `environments/<env>/values.yaml`
+2. Commit and push
+3. ArgoCD auto-syncs (or manual sync for prod)
+
+### Modifying Resources
+
+1. Edit resource limits in values files
+2. Test in dev first
+3. Promote to stage
+4. Deploy to prod after validation
+
+### Updating Secrets
+
+1. Update secret in AWS Secrets Manager (via infra repo)
+2. External Secrets Operator syncs automatically
+3. Restart pods if needed:
+   ```bash
+   kubectl rollout restart deployment/<name> -n <namespace>
+   ```
+
+---
+
+## ✅ Production Checklist
+
+Before deploying to production:
+
+- [ ] Code reviewed and tested in dev
+- [ ] QA validation completed in stage
+- [ ] Version tag created (e.g., v1.0.0)
+- [ ] Values file updated with version tag
+- [ ] Resource limits appropriate
+- [ ] Secrets configured in AWS Secrets Manager
+- [ ] ArgoCD application deployed
+- [ ] Manual sync performed
+- [ ] Health checks passing
+- [ ] Logs reviewed for errors
+
+---
+
+## 📚 Additional Resources
+
+- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
+- [Helm Documentation](https://helm.sh/docs/)
+- [External Secrets Operator](https://external-secrets.io/)
+- [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)
+
+---
+
+## 🤝 Contributing
+
+1. Create feature branch
+2. Update appropriate environment values
+3. Test in dev environment
+4. Submit pull request
+5. Deploy to stage for validation
+6. Manually deploy to prod after approval
+
+---

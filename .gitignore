@@ -1,37 +1,35 @@
-# Sensitive files (local overrides with real secrets)
+# ============================================================================
+# GitIgnore - Security and Development Files
+# Prevents sensitive files and development artifacts from being committed
+# ============================================================================
+
 *-secrets.yaml
 values-with-secrets.yaml
 override-*.yaml
 terraform.tfvars
 
-# Environment files
 .env
 .env.local
 *.env
 
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
 .DS_Store
 Thumbs.db
 
-# Terraform (if added later)
 *.tfstate
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl
 
-# Temporary files
 *.tmp
 *.bak
 *.log
 .cache/
 
-# Kubernetes generated files
 kubeconfig
 *.kubeconfig

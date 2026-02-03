@@ -1,36 +1,29 @@
 # ============================================================================
-# Production Environment Configuration
-# Uses version tags (v1.0.0), high resources, multiple replicas
-# Production workloads with manual deployment approval
+# Production Environment - Helm Values
+# Configures ScoutFlow application for production with high availability
 # ============================================================================
 
 global:
   registry: 279987127424.dkr.ecr.us-east-1.amazonaws.com
-  imageTag: v1.0.0  # Specific version - NOT latest!
+  imageTag: v1.0.0
 
 imagePullSecrets:
   - name: ecr-registry-secret
 
-# ECR authentication
 ecr:
   enabled: true
   username: AWS
-  password: ""  # Set via CD pipeline
+  password: ""
 
-# External Secrets Operator configuration
-# NOTE: Infra repo must use static names (not name_prefix) for full automation
-# See: scoutflow-infra/modules/database-secrets/main.tf
 externalSecrets:
   enabled: true
   region: us-east-1
-  # Static secret name - matches what terraform creates
   secretName: "scoutflow/prod/database"
 
-# Database configuration
 database:
   image:
     repository: scoutflow-app-db
-    pullPolicy: IfNotPresent  # Use cached images in production
+    pullPolicy: IfNotPresent
     tag: ""
   
   replicas: 1
@@ -41,15 +34,12 @@ database:
   
   persistence:
     storageClass: "standard"
-    size: 20Gi  # Larger storage for production
+    size: 20Gi
   
-  # Only non-sensitive values - password managed by External Secrets Operator
   env:
     POSTGRES_USER: postgres
     POSTGRES_DB: nba_stats
 
-
-# Ingest job configuration
 ingest:
   image:
     repository: scoutflow-app-ingest
@@ -57,24 +47,23 @@ ingest:
     tag: ""
   
   restartPolicy: Never
-  backoffLimit: 3
+  backoffLimit: 5
   
   resources:
     requests:
-      cpu: 200m
-      memory: 512Mi
-    limits:
-      cpu: 1000m
+      cpu: 500m
       memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
 
-# Backend configuration
 backend:
   image:
     repository: scoutflow-app-backend
     pullPolicy: IfNotPresent
     tag: ""
   
-  replicas: 3  # High availability
+  replicas: 3
   
   service:
     type: ClusterIP
@@ -82,20 +71,19 @@ backend:
   
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
       cpu: 500m
-      memory: 256Mi
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 1Gi
 
-# Frontend configuration
 frontend:
   image:
     repository: scoutflow-app-frontend
     pullPolicy: IfNotPresent
     tag: ""
   
-  replicas: 3  # High availability
+  replicas: 3
   
   service:
     type: ClusterIP
@@ -103,12 +91,11 @@ frontend:
   
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
       cpu: 200m
-      memory: 128Mi
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
 
-# Ingress configuration
 ingress:
   host: scoutflow.example.com
