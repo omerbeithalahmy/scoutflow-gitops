@@ -1,3 +1,8 @@
+# ============================================================================
+# ArgoCD Application - Stage Environment
+# Deploys ScoutFlow to stage namespace with automated sync for QA testing
+# ============================================================================
+
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -9,7 +14,6 @@ spec:
   project: default
   
   sources:
-    # Source 1: Helm chart from app repository
     - repoURL: https://github.com/omerbh7/scoutflow-app
       targetRevision: main
       path: helm/scoutflow
@@ -17,7 +21,6 @@ spec:
         valueFiles:
           - $values/environments/stage/values.yaml
     
-    # Source 2: Values from GitOps repository
     - repoURL: https://github.com/omerbh7/scoutflow-gitops
       targetRevision: main
       ref: values

@@ -1,3 +1,8 @@
+# ============================================================================
+# ArgoCD Application - Production Environment
+# Deploys ScoutFlow to prod namespace with manual sync for controlled releases
+# ============================================================================
+
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -9,7 +14,6 @@ spec:
   project: default
   
   sources:
-    # Source 1: Helm chart from app repository
     - repoURL: https://github.com/omerbh7/scoutflow-app
       targetRevision: main
       path: helm/scoutflow
@@ -17,7 +21,6 @@ spec:
         valueFiles:
           - $values/environments/prod/values.yaml
     
-    # Source 2: Values from GitOps repository
     - repoURL: https://github.com/omerbh7/scoutflow-gitops
       targetRevision: main
       ref: values
@@ -26,9 +29,7 @@ spec:
     server: https://kubernetes.default.svc
     namespace: prod
   
-  # NO automated sync - manual approval required!
   syncPolicy:
-    # automated: NOT SET - this is manual sync
     syncOptions:
       - CreateNamespace=true
       - Validate=true

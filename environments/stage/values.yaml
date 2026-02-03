@@ -1,7 +1,6 @@
 # ============================================================================
-# Stage Environment Configuration
-# Uses 'latest' tags, production-like resources, moderate replicas
-# Pre-production testing and QA environment
+# Stage Environment - Helm Values
+# Configures ScoutFlow application for staging with production-like resources
 # ============================================================================
 
 global:
@@ -11,22 +10,16 @@ global:
 imagePullSecrets:
   - name: ecr-registry-secret
 
-# ECR authentication
 ecr:
   enabled: true
   username: AWS
-  password: ""  # Set via CD pipeline
+  password: ""
 
-# External Secrets Operator configuration
-# NOTE: Infra repo must use static names (not name_prefix) for full automation
-# See: scoutflow-infra/modules/database-secrets/main.tf
 externalSecrets:
   enabled: true
   region: us-east-1
-  # Static secret name - matches what terraform creates
   secretName: "scoutflow/stage/database"
 
-# Database configuration
 database:
   image:
     repository: scoutflow-app-db
@@ -43,13 +36,10 @@ database:
     storageClass: "standard"
     size: 10Gi
   
-  # Only non-sensitive values - password managed by External Secrets Operator
   env:
     POSTGRES_USER: postgres
     POSTGRES_DB: nba_stats
 
-
-# Ingest job configuration
 ingest:
   image:
     repository: scoutflow-app-ingest
@@ -62,12 +52,11 @@ ingest:
   resources:
     requests:
       cpu: 200m
-      memory: 256Mi
+      memory: 512Mi
     limits:
       cpu: 1000m
-      memory: 512Mi
+      memory: 1Gi
 
-# Backend configuration
 backend:
   image:
     repository: scoutflow-app-backend
@@ -82,13 +71,12 @@ backend:
   
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 500m
+      cpu: 200m
       memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
 
-# Frontend configuration
 frontend:
   image:
     repository: scoutflow-app-frontend
@@ -103,12 +91,11 @@ frontend:
   
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 200m
+      cpu: 100m
       memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
 
-# Ingress configuration
 ingress:
   host: stage.scoutflow.example.com
