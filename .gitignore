@@ -1,8 +1,3 @@
-# ============================================================================
-# GitIgnore - Security and Development Files
-# Prevents sensitive files and development artifacts from being committed
-# ============================================================================
-
 *-secrets.yaml
 values-with-secrets.yaml
 override-*.yaml
