@@ -1,0 +1,50 @@
+name: Validate GitOps Configuration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          pip install yamllint
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: YAML Lint
+        run: yamllint -d "{extends: default, rules: {line-length: {max: 120}, indentation: {spaces: 2}}}" .
+
+      - name: Helm Lint - Dev
+        run: |
+          cd argocd/apps
+          helm template scoutflow-dev scoutflow-dev.yaml --set global.imageTag=test --dry-run
+
+      - name: Helm Lint - Stage
+        run: |
+          cd argocd/apps
+          helm template scoutflow-stage scoutflow-stage.yaml --set global.imageTag=test --dry-run
+
+      - name: Helm Lint - Prod
+        run: |
+          cd argocd/apps
+          helm template scoutflow-prod scoutflow-prod.yaml --set global.imageTag=test --dry-run
+
+      - name: Validate Kubernetes Manifests
+        run: |
+          kubectl version --client
+          find . -name "*.yaml" -type f -exec kubectl apply --dry-run=client -f {} \; 2>&1 | grep -v "Warning"
+
+      - name: Security Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          quiet: true
+          soft_fail: true
