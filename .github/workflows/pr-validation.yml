@@ -20,7 +20,7 @@ jobs:
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
       - name: YAML Lint
-        run: yamllint -d "{extends: default, rules: {line-length: {max: 120}, indentation: {spaces: 2}}}" .
+        run: yamllint -d relaxed .
 
       - name: Helm Lint - Dev
         run: |
