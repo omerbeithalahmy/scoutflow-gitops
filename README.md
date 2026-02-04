@@ -113,9 +113,12 @@ kubectl describe externalsecret -n dev
 
 ## 🔐 Secret Management
 
-### How External Secrets Work
+<details>
+<summary><b>📖 How External Secrets Work (Click to expand)</b></summary>
 
-**Configuration** (in values files):
+### Configuration
+
+In values files:
 ```yaml
 externalSecrets:
   enabled: true
@@ -123,21 +126,28 @@ externalSecrets:
   secretName: "scoutflow/dev/database"
 ```
 
-**What Happens:**
+### What Happens
+
 1. External Secrets Operator reads from AWS Secrets Manager
 2. Creates Kubernetes secret: `<release>-db-secret`
 3. Contains keys: `DB_USER`, `DB_PASSWORD`, `DB_NAME`
 4. Application pods mount the secret
 
-**Security Benefits:**
+### Security Benefits
+
 - ✅ Zero passwords in Git
 - ✅ IAM-based authentication (IRSA)
 - ✅ Automatic secret rotation support
 - ✅ Audit trail in AWS CloudTrail
 
+</details>
+
 ---
 
 ## 🌍 Environment Configuration
+
+<details>
+<summary><b>📖 Detailed Environment Specs (Click to expand)</b></summary>
 
 ### Development
 
@@ -169,9 +179,14 @@ externalSecrets:
 - **Sync:** **Manual approval required**
 - **Namespace:** `prod`
 
+</details>
+
 ---
 
 ## 🔄 Deployment Workflow
+
+<details>
+<summary><b>📖 Deployment Process Details (Click to expand)</b></summary>
 
 ### Automated Deployment (Dev/Stage)
 
@@ -202,9 +217,14 @@ externalSecrets:
 5. Production deployment completes
 ```
 
+</details>
+
 ---
 
 ## 🛠️ Common Operations
+
+<details>
+<summary><b>📖 Useful Commands (Click to expand)</b></summary>
 
 ### Update Application Version
 
@@ -272,9 +292,14 @@ kubectl get secret -n dev | grep db-secret
 kubectl logs -n external-secrets-system -l app.kubernetes.io/name=external-secrets
 ```
 
+</details>
+
 ---
 
 ## 📊 Resource Allocation
+
+<details>
+<summary><b>📖 Resource Limits by Environment (Click to expand)</b></summary>
 
 | Environment | Backend CPU | Backend Memory | Frontend CPU | Frontend Memory |
 |-------------|-------------|----------------|--------------|-----------------|
@@ -282,9 +307,14 @@ kubectl logs -n external-secrets-system -l app.kubernetes.io/name=external-secre
 | **Stage**   | 200m-1000m  | 256Mi-512Mi    | 100m-500m    | 128Mi-256Mi     |
 | **Prod**    | 500m-2000m  | 512Mi-1Gi      | 200m-1000m   | 256Mi-512Mi     |
 
+</details>
+
 ---
 
 ## 🔍 Monitoring & Access
+
+<details>
+<summary><b>📖 Access and Monitoring Commands (Click to expand)</b></summary>
 
 ### ArgoCD UI
 
@@ -313,6 +343,8 @@ kubectl logs -n dev -l app.kubernetes.io/component=frontend
 # Database logs
 kubectl logs -n dev -l app.kubernetes.io/component=database
 ```
+
+</details>
 
 ---
 
@@ -371,6 +403,9 @@ argocd app sync scoutflow-prod
 
 ## 📝 Making Changes
 
+<details>
+<summary><b>📖 How to Modify Configuration (Click to expand)</b></summary>
+
 ### Adding New Environment Variables
 
 1. Update `environments/<env>/values.yaml`
@@ -392,6 +427,8 @@ argocd app sync scoutflow-prod
    ```bash
    kubectl rollout restart deployment/<name> -n <namespace>
    ```
+
+</details>
 
 ---
 
