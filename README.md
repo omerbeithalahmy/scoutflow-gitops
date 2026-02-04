@@ -57,6 +57,10 @@ This repository manages ScoutFlow's Kubernetes deployments across three environm
 
 ```
 scoutflow-gitops/
+├── .github/
+│   └── workflows/
+│       └── pr-validation.yml     # CI/CD validation workflow
+│
 ├── argocd/
 │   └── apps/
 │       ├── scoutflow-dev.yaml      # Dev environment ArgoCD application
@@ -108,6 +112,48 @@ kubectl get pods -n prod
 kubectl get externalsecret -n dev
 kubectl describe externalsecret -n dev
 ```
+
+---
+
+## 🔄 CI/CD Pipeline
+
+<details>
+<summary><b>📖 Automated Validation Workflow (Click to expand)</b></summary>
+
+### PR Validation
+
+Runs automatically on every Pull Request and push to main:
+
+**Checks:**
+- YAML syntax validation
+- Helm linting for all environments (dev/stage/prod)
+- Kubernetes manifest validation
+- Security scanning with Checkov
+
+**Workflow:** [pr-validation.yml](.github/workflows/pr-validation.yml)
+
+### How It Works
+
+```
+1. Developer creates PR
+   ↓
+2. GitHub Actions runs validation
+   ↓
+3. All checks must pass
+   ↓
+4. PR can be merged
+   ↓
+5. ArgoCD deploys changes
+```
+
+### Benefits
+
+- Catches YAML syntax errors before merge
+- Validates Helm configurations
+- Prevents security misconfigurations
+- Ensures deployable manifests
+
+</details>
 
 ---
 
