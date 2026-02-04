@@ -124,11 +124,11 @@ kubectl describe externalsecret -n dev
 
 Runs automatically on every Pull Request and push to main:
 
-**Checks:**
-- YAML syntax validation
-- Helm linting for all environments (dev/stage/prod)
-- Kubernetes manifest validation
-- Security scanning with Checkov
+**Validation Steps:**
+
+1. **YAML Lint** - Checks code style and formatting (warnings only)
+2. **YAML Syntax Validation** - Ensures all YAML files are parseable (fails on errors)
+3. **Security Scan** - Scans for security misconfigurations using Checkov (warnings only)
 
 **Workflow:** [pr-validation.yml](.github/workflows/pr-validation.yml)
 
@@ -139,19 +139,19 @@ Runs automatically on every Pull Request and push to main:
    ↓
 2. GitHub Actions runs validation
    ↓
-3. All checks must pass
+3. YAML syntax check must pass
    ↓
 4. PR can be merged
    ↓
-5. ArgoCD deploys changes
+5. ArgoCD automatically deploys changes
 ```
 
 ### Benefits
 
 - Catches YAML syntax errors before merge
-- Validates Helm configurations
-- Prevents security misconfigurations
-- Ensures deployable manifests
+- Identifies security misconfigurations
+- Maintains code quality standards
+- Prevents broken configurations from reaching cluster
 
 </details>
 
