@@ -23,7 +23,7 @@ externalSecrets:
 database:
   image:
     repository: scoutflow-app-db
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
     tag: ""
   
   replicas: 1
@@ -43,11 +43,11 @@ database:
 ingest:
   image:
     repository: scoutflow-app-ingest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
     tag: ""
   
   restartPolicy: Never
-  backoffLimit: 5
+  backoffLimit: 10
   
   resources:
     requests:
@@ -80,7 +80,7 @@ backend:
 frontend:
   image:
     repository: scoutflow-app-frontend
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
     tag: ""
   
   replicas: 3
