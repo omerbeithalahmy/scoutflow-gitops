@@ -40,22 +40,6 @@ database:
     POSTGRES_USER: postgres
     POSTGRES_DB: nba_stats
 
-ingest:
-  image:
-    repository: scoutflow-app-ingest
-    pullPolicy: Always
-    tag: ""
-  
-  restartPolicy: Never
-  backoffLimit: 10
-  
-  resources:
-    requests:
-      cpu: 500m
-      memory: 1Gi
-    limits:
-      cpu: 2000m
-      memory: 2Gi
 
 backend:
   image:
