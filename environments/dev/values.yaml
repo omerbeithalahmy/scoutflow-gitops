@@ -5,54 +5,41 @@
 
 global:
   registry: 279987127424.dkr.ecr.us-east-1.amazonaws.com
-  imageTag: "INITIAL_DEPLOYMENT"  # Auto-updated by CI with commit SHA
-
+  imageTag: e7c24f013e837f438f66a6e039e673f880e2cb89
 imagePullSecrets:
   - name: ecr-registry-secret
-
 ecr:
   enabled: true
   username: AWS
   password: ""
-
 externalSecrets:
   enabled: true
   region: us-east-1
   secretName: "scoutflow/dev/database"
-
 database:
   image:
     repository: scoutflow-app-db
     pullPolicy: Always
     tag: ""
-  
   replicas: 1
-  
   service:
     type: ClusterIP
     port: 5432
-  
   persistence:
     storageClass: "standard"
     size: 10Gi
-  
   env:
     POSTGRES_USER: postgres
     POSTGRES_DB: nba_stats
-
-
 backend:
   image:
     repository: scoutflow-app-backend
     pullPolicy: Always
     tag: ""
-  
   replicas: 1
-  
   service:
     type: ClusterIP
     port: 8000
-  
   resources:
     requests:
       cpu: 100m
@@ -60,19 +47,15 @@ backend:
     limits:
       cpu: 500m
       memory: 256Mi
-
 frontend:
   image:
     repository: scoutflow-app-frontend
     pullPolicy: Always
     tag: ""
-  
   replicas: 1
-  
   service:
     type: ClusterIP
     port: 80
-  
   resources:
     requests:
       cpu: 50m
@@ -80,6 +63,5 @@ frontend:
     limits:
       cpu: 200m
       memory: 128Mi
-
 ingress:
   host: dev.scoutflow.example.com
