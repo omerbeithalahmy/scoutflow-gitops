@@ -115,6 +115,28 @@ kubectl describe externalsecret -n dev
 
 ---
 
+## 🤖 Automatic Image Tracking
+
+**Automatic deployment updates for dev and stage environments.**
+
+### How It Works
+
+When you push code to the `scoutflow-app` repository:
+
+1. CI builds Docker images tagged with the commit SHA (e.g., `backend:abc123def`)
+2. Automated workflow updates this GitOps repo with the new image tag
+3. Changes `dev/values.yaml` and `stage/values.yaml` to reference the new SHA
+4. ArgoCD detects the Git change and automatically syncs
+5. New images deploy to dev and stage clusters
+
+### Setup Required
+
+Create a GitHub Personal Access Token (classic) with `repo` scope and add it as `GITOPS_PAT` secret in the scoutflow-app repository.
+
+**Production remains manual** for safety - you control when production updates happen.
+
+---
+
 ## 🔄 CI/CD Pipeline
 
 <details>
@@ -440,10 +462,18 @@ argocd app sync scoutflow-prod
 
 ### Image Tags
 
-📌 **Use specific versions in production**
+📌 **Automatic tracking with commit SHAs**
 
-- ❌ Bad: `imageTag: latest` (in prod)
-- ✅ Good: `imageTag: v1.0.0` (in prod)
+- **Dev/Stage:** Automatically updated with commit SHA (e.g., `abc123def`)
+- **Production:** Manually updated for controlled releases
+- Automation workflow handles dev/stage - production remains manual for safety
+
+```bash
+# Dev and stage are auto-updated by CI
+# Production requires manual update:
+vi environments/prod/values.yaml
+# Change imageTag to desired commit SHA or version tag
+```
 
 ---
 
