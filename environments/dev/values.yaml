@@ -5,7 +5,7 @@
 
 global:
   registry: 279987127424.dkr.ecr.us-east-1.amazonaws.com
-  imageTag: latest
+  imageTag: "INITIAL_DEPLOYMENT"  # Auto-updated by CI with commit SHA
 
 imagePullSecrets:
   - name: ecr-registry-secret

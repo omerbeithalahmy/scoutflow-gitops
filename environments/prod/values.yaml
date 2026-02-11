@@ -5,7 +5,7 @@
 
 global:
   registry: 279987127424.dkr.ecr.us-east-1.amazonaws.com
-  imageTag: latest
+  imageTag: "v1.0.0"  # Use semantic versioning for production releases
 
 imagePullSecrets:
   - name: ecr-registry-secret
