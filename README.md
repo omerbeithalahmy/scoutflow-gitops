@@ -404,7 +404,7 @@ externalSecrets:
 
 ### scoutflow-infra
 
-**Repository:** [`github.com/omerbh7/scoutflow-infra`](https://github.com/omerbh7/scoutflow-infra)
+**Repository:** [`github.com/omerbh7/scoutflow-infra`](https://github.com/omerbeithalahmy/scoutflow-infra)
 
 **Provides:**
 - AWS EKS Kubernetes cluster
@@ -420,7 +420,7 @@ externalSecrets:
 
 ### scoutflow-app
 
-**Repository:** [`github.com/omerbh7/scoutflow-app`](https://github.com/omerbh7/scoutflow-app)
+**Repository:** [`github.com/omerbh7/scoutflow-app`](https://github.com/omerbeithalahmy/scoutflow-app)
 
 **Provides:**
 - Helm chart templates (`helm/scoutflow/`)
