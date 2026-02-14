@@ -402,11 +402,10 @@ externalSecrets:
 
 ## 🔗 Integration with Other Repositories
 
-### scoutflow-infra
+### [scoutflow-infra](https://github.com/omerbeithalahmy/scoutflow-infra)
 
-**Repository:** [`github.com/omerbh7/scoutflow-infra`](https://github.com/omerbeithalahmy/scoutflow-infra)
+**What Infrastructure Provides:**
 
-**Provides:**
 - AWS EKS Kubernetes cluster
 - ArgoCD installation (Helm addon)
 - External Secrets Operator deployment
@@ -418,11 +417,12 @@ externalSecrets:
 
 **Relationship:** Infrastructure must be deployed before this GitOps repository can function. ArgoCD running in the cluster watches this repository.
 
-### scoutflow-app
+---
 
-**Repository:** [`github.com/omerbh7/scoutflow-app`](https://github.com/omerbeithalahmy/scoutflow-app)
+### [scoutflow-app](https://github.com/omerbeithalahmy/scoutflow-app)
 
-**Provides:**
+**What Application Provides:**
+
 - Helm chart templates (`helm/scoutflow/`)
 - Docker images (backend, frontend, database)
 - Application source code
