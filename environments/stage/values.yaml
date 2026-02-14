@@ -5,7 +5,7 @@
 
 global:
   registry: 279987127424.dkr.ecr.us-east-1.amazonaws.com
-  imageTag: e7c24f013e837f438f66a6e039e673f880e2cb89
+  imageTag: df13cd4913c1717f169567e9a64ee964332bcd64
 imagePullSecrets:
   - name: ecr-registry-secret
 ecr:
